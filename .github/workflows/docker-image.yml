@@ -1,0 +1,40 @@
+#docker-image.yml
+name: Transaction Handler
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'trigger source'
+        required: false
+        default: 'cron-job.org'
+jobs:
+  cleaner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Publish blocks
+        run: |
+          set -e
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          mkdir -p logs
+          ACCOUNT_ID="$(basename "$GITHUB_REPOSITORY")"
+          FILE="logs/${ACCOUNT_ID}.txt"
+          echo "$(date '+%T') | step=$(shuf -i100000-999999 -n1)" >> "$FILE"
+          git add "$FILE"
+          git commit -m "log: record appended"
+          git push
+          sleep $(( ( $(date +%s) % 3 ) + 1 ))
+          echo "$(date '+%T') | cycle=$(shuf -i1000-9999 -n1)" >> "$FILE"
+          git add "$FILE"
+          git commit -m "log: points recorded"
+          git push
+          sleep $(( ( $(date +%s) % 3 ) + 1 ))
+          NASHJ="$(sha256sum "$FILE" | awk '{print $1}')"
+          echo "$(date '+%T') | hash4=$NASHJ" >> "$FILE"
+          git add "$FILE"
+          git commit -m "checkpoint: proof3"
+          git push
